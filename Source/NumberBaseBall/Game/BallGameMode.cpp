@@ -20,7 +20,9 @@ void ABallGameMode::PrintChatMessageString(ABallPlayerController* InChattingPlay
 {
 	int Index = InChatMessageString.Len() - 3;
 	FString GuessNumberString = InChatMessageString.RightChop(Index);
-	if (IsGuessNumberString(GuessNumberString))
+	ABallPlayerState* BallPS = InChattingPlayerController->GetPlayerState<ABallPlayerState>();
+
+	if (BallPS->CurrentGuessCount < BallPS->MaxGuessCount && IsGuessNumberString(GuessNumberString, InChattingPlayerController) )
 	{
 		FString JudgeResultString = CheckAnswer(GuessNumberString);
 
@@ -35,7 +37,6 @@ void ABallGameMode::PrintChatMessageString(ABallPlayerController* InChattingPlay
 				continue;
 			}
 
-			ABallPlayerState* BallPS = InChattingPlayerController->GetPlayerState<ABallPlayerState>();
 			if (BallPS)
 			{
 				FString CombinedMessageString = InChatMessageString + TEXT(" -> ") + JudgeResultString + BallPS->GetPlayerInfoString();
@@ -48,31 +49,9 @@ void ABallGameMode::PrintChatMessageString(ABallPlayerController* InChattingPlay
 	}
 	else
 	{
-		// string이 숫자로만 이루어져있고
-		if (GuessNumberString.IsNumeric())
+		if (BallPS->CurrentGuessCount >= BallPS->MaxGuessCount)
 		{
-			// 3자리 숫자를 입력하지 않은 경우
-			if (GuessNumberString.Len() != 3)
-			{
-				InChattingPlayerController->ClientRPCPrintChatMessageString(TEXT("Enter three digits"));
-			}
-
-			// 중복된 숫자를 입력한 경우
-			for (int32 Index1 = 0; Index1 < GuessNumberString.Len(); Index1++)
-			{
-				for (int32 Index2 = 0; Index2 < GuessNumberString.Len(); Index2++)
-				{
-					if (Index1 != Index2)
-					{
-						if (GuessNumberString[Index1] == GuessNumberString[Index2])
-						{
-							InChattingPlayerController->ClientRPCPrintChatMessageString(TEXT("Enter a non-overlapping number"));
-							return;
-						}
-					}
-				}
-			}
-			return;
+			InChattingPlayerController->ClientRPCPrintChatMessageString(TEXT("You have used up all attempts"));
 		}
 
 		for (int32 i = AllPlayerControllers.Num() - 1; i >= 0; --i)
@@ -130,33 +109,57 @@ FString ABallGameMode::GenerateRandomNumber()
 	return Result;
 }
 
-bool ABallGameMode::IsGuessNumberString(const FString& InNumberString)
+bool ABallGameMode::IsGuessNumberString(const FString& InNumberString, ABallPlayerController* InChattingPlayerController)
 {
 	bool bCanPlay = false;
 
 	do {
 
-		// InNumberString가 3개가 아니면 종료
+		bool bIsUnique = true;
+		
 		if (InNumberString.Len() != 3)
 		{
 			break;
 		}
 
-		bool bIsUnique = true;
+		if (InNumberString.Len() != 3)
+		{
+			InChattingPlayerController->ClientRPCPrintChatMessageString(TEXT("!! Enter three at least 3 digits"));
+			bIsUnique = false;
+			break;
+		}
+		
+		if (!bIsUnique)
+		{
+			
+			break;
+		}
+
+		TArray<TCHAR> Digits;
 		TSet<TCHAR> UniqueDigits;
+		// 입력한 것이 숫자 3자리인지 확인
 		for (TCHAR C : InNumberString)
 		{
 			if (FChar::IsDigit(C) == false || C == '0')
 			{
 				bIsUnique = false;
-				break;
 			}
-
-			UniqueDigits.Add(C);
+			Digits.Add(C);
+		}
+		if (!bIsUnique)
+		{
+			InChattingPlayerController->ClientRPCPrintChatMessageString(TEXT("!! Enter only numbers excluding 0"));
+			break;
 		}
 
+		// 입력한 것이 중복이 없는지 확인
+		for (TCHAR Num : Digits)
+		{
+			UniqueDigits.Add(Num);
+		}
 		if (UniqueDigits.Num() <= 2)
 		{
+			InChattingPlayerController->ClientRPCPrintChatMessageString(TEXT("!! Enter a non-duplicate number"));
 			bIsUnique = false;
 		}
 
@@ -205,7 +208,10 @@ void ABallGameMode::IncreaseGuessCount(ABallPlayerController* InChattingPlayerCo
 	ABallPlayerState* BallPS = InChattingPlayerController->GetPlayerState<ABallPlayerState>();
 	if (BallPS)
 	{
-		BallPS->CurrentGuessCount++;
+		if (BallPS->CurrentGuessCount < BallPS->MaxGuessCount)
+		{
+			BallPS->CurrentGuessCount++;
+		}		
 	}
 }
 
@@ -227,7 +233,7 @@ void ABallGameMode::ResetGame()
 	}
 }
 
-void ABallGameMode::JudgeGame(ABallPlayerController* InChattingPlayerController, int InStrikeCount)
+void ABallGameMode::JudgeGame(ABallPlayerController* InChattingPlayerController, int32 InStrikeCount)
 {
 	if (3 == InStrikeCount)
 	{

@@ -22,7 +22,7 @@ public:
 
 	FString GenerateRandomNumber();
 
-	bool IsGuessNumberString(const FString& InNumberString);
+	bool IsGuessNumberString(const FString& InNumberString, ABallPlayerController* InChattingPlayerController);
 
 	FString CheckAnswer(const FString& InGuessNumberString);
 
@@ -30,7 +30,7 @@ public:
 
 	void ResetGame();
 
-	void JudgeGame(ABallPlayerController* InChattingPlayerController, int InStrikeCount);
+	void JudgeGame(ABallPlayerController* InChattingPlayerController, int32 InStrikeCount);
 
 protected:
 	FString SecretNumberString;

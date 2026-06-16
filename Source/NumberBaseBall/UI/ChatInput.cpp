@@ -28,18 +28,21 @@ void UChatInput::NativeDestruct()
 
 void UChatInput::OnChatInputTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
 {
-	// 컨트롤러 가져오기
-	APlayerController* PC = GetOwningPlayer();
-	if (PC)
+	if (CommitMethod == ETextCommit::OnEnter)
 	{
-		ABallPlayerController* BallPC = Cast<ABallPlayerController>(PC);
-		if (BallPC)
+		// 컨트롤러 가져오기
+		APlayerController* PC = GetOwningPlayer();
+		if (PC)
 		{
-			// 출력
-			BallPC->SetChatMessage(Text.ToString());
+			ABallPlayerController* BallPC = Cast<ABallPlayerController>(PC);
+			if (BallPC)
+			{
+				// 출력
+				BallPC->SetChatMessage(Text.ToString());
 
-			// 텍스트 리셋
-			ChatInputBox->SetText(FText());
+				// 텍스트 리셋
+				ChatInputBox->SetText(FText());
+			}
 		}
 	}
 }

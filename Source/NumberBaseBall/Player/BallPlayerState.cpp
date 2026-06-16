@@ -21,6 +21,6 @@ void ABallPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 
 FString ABallPlayerState::GetPlayerInfoString()
 {
-	FString PlayerInfoString = TEXT(" (") + FString::FromInt(CurrentGuessCount) + TEXT("/") + FString::FromInt(MaxGuessCount) + TEXT(")");
+	FString PlayerInfoString = TEXT(" [") + FString::FromInt(CurrentGuessCount) + TEXT("/") + FString::FromInt(MaxGuessCount) + TEXT("]");
 	return PlayerInfoString;
 }
